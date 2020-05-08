@@ -59,6 +59,13 @@ function createFeatures(earthquakeData) {
 
 function createMap(earthquakes) {
 
+    var satellitemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+        maxZoom: 18,
+        id: "mapbox.satellite",
+        accessToken: API_KEY
+    });
+
     var grayscalemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
         attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
         maxZoom: 18,
@@ -66,29 +73,34 @@ function createMap(earthquakes) {
         accessToken: API_KEY
     });
 
-    var darkmap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-    maxZoom: 18,
-    id: "mapbox.dark",
-    accessToken: API_KEY
-  });
+    var outdoormap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+        maxZoom: 18,
+        id: "mapbox.outdoors",
+        accessToken: API_KEY
+    });
+
+    // Create the faultline layer
+    var faultline = new L.LayerGroup();
 
     // Define a baseMaps object to hold our base layers
     var baseMaps = {
+        "Satellite": satellitemap,
         "Grayscale": grayscalemap,
-        "Dark Map": darkmap
+        "Outdoor": outdoormap
     };
 
     // Create overlay object to hold our overlay layer
     var overlayMaps = {
-        Earthquakes: earthquakes
+        Earthquakes: earthquakes,
+        Faultlines: faultline
     };
 
     // Create our map, giving it the streetmap and earthquakes layers to display on load
     var myMap = L.map("map", {
         center: [0.00, 0.00],
         zoom: 3,
-        layers: [grayscalemap, earthquakes]
+        layers: [satellitemap, grayscalemap, outdoormap, earthquakes, faultline]
     });
 
     // Create a layer control
@@ -97,6 +109,18 @@ function createMap(earthquakes) {
     L.control.layers(baseMaps, overlayMaps, {
         collapsed: true
     }).addTo(myMap);
+
+    // Query to retrieve the faultline data
+    var faultlinequery = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_plates.json";
+
+    //Create the faultlines and them to the faultline layer
+    d3.json(faultlinequery, function(data){
+        L.geoJSON(data, {
+            style: function() {
+                return {color: "orange", weight: 0.8, fillOpacity:0}
+            }
+        }).addTo(faultline)
+    })
 
     //Add legend to the map
     var legend = L.control({position: 'bottomright'});
